@@ -1,7 +1,7 @@
 """Static server for the web build. Sends Cache-Control: no-cache so browsers revalidate
 every file (cheap 304s) and always pick up a fresh build from tools/build.sh.
 
-Usage: python3 tools/serve.py [port] [host]   (defaults: 4956 127.0.0.1)
+Usage: python3 tools/serve.py [port] [host] [dir]   (defaults: 4956 0.0.0.0 dist)
 """
 import functools
 import http.server
@@ -21,5 +21,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 
 port = int(sys.argv[1]) if len(sys.argv) > 1 else 4956
-host = sys.argv[2] if len(sys.argv) > 2 else "127.0.0.1"
+host = sys.argv[2] if len(sys.argv) > 2 else "0.0.0.0"
+if len(sys.argv) > 3:
+    ROOT = pathlib.Path(sys.argv[3]).resolve()
 http.server.ThreadingHTTPServer((host, port), functools.partial(Handler, directory=str(ROOT))).serve_forever()

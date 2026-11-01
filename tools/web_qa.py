@@ -10,20 +10,22 @@ Needs chromium and websocket-client; the app must be served on http://127.0.0.1:
 import json, subprocess, sys, time, base64, urllib.request
 import websocket
 import os
+DBG = int(os.environ.get("QA_DEBUG_PORT", "9333"))
+APP = os.environ.get("QA_URL", "http://127.0.0.1:4956/")
 out = sys.argv[1]
 VW, VH, DPR = int(os.environ.get("QA_W", 1440)), int(os.environ.get("QA_H", 810)), float(os.environ.get("QA_DPR", 1))
 steps = json.loads(sys.argv[2]) if len(sys.argv) > 2 else []
 chrome = subprocess.Popen(["chromium", "--headless=new", "--no-sandbox", "--use-angle=swiftshader", "--enable-unsafe-swiftshader",
-    f"--window-size={VW},{VH}", f"--user-data-dir={out}/prof", "--remote-debugging-port=9333", "--remote-allow-origins=http://127.0.0.1:9333", "about:blank"],
+    f"--window-size={VW},{VH}", f"--user-data-dir={out}/prof", f"--remote-debugging-port={DBG}", f"--remote-allow-origins=http://127.0.0.1:{DBG}", "about:blank"],
     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 try:
     for _ in range(50):
         try:
-            tabs = json.load(urllib.request.urlopen("http://127.0.0.1:9333/json"))
+            tabs = json.load(urllib.request.urlopen(f"http://127.0.0.1:{DBG}/json"))
             if tabs: break
         except Exception: time.sleep(0.2)
     page = [t for t in tabs if t["type"] == "page"][0]
-    ws = websocket.create_connection(page["webSocketDebuggerUrl"], timeout=600, origin="http://127.0.0.1:9333")
+    ws = websocket.create_connection(page["webSocketDebuggerUrl"], timeout=600, origin=f"http://127.0.0.1:{DBG}")
     n = [0]
     logs = []
     def call(method, **params):
@@ -40,7 +42,7 @@ try:
     call("Runtime.enable")
     call("Emulation.setFocusEmulationEnabled", enabled=True)  # don't throttle timers like a background tab
     call("Emulation.setDeviceMetricsOverride", width=VW, height=VH, deviceScaleFactor=DPR, mobile=False)
-    call("Page.navigate", url="http://127.0.0.1:4956/")
+    call("Page.navigate", url=APP)
     def shot(name):
         r = call("Page.captureScreenshot", format="png")
         open(f"{out}/{name}.png", "wb").write(base64.b64decode(r["data"]))

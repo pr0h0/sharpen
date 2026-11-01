@@ -1,5 +1,5 @@
 // Screens and routing (#/, #/course/:id, #/lesson/:course/:lesson, #/practice, #/settings).
-import { COURSES } from './courses';
+import { ALL_COURSES, CATEGORIES, COURSES } from './courses';
 import { play, type Item, type Result } from './player';
 import { dueReviews, liveStreak, resetAll, save, schedule, solvedToday, state, countSolved, touchStreak, today } from './store';
 import type { Course, Lesson } from './types';
@@ -81,20 +81,35 @@ function homeScreen() {
         h('p', { class: 'muted' }, anyDone ? 'Fresh problems on what you’ve learned, mixed up, with what you missed coming back sooner.' : 'Finish a lesson and its ideas come back here, spaced out so they stick.')),
       h('button', { class: anyDone ? 'primary' : 'ghost', disabled: !anyDone, onclick: () => go('#/practice') }, 'Practise')));
 
-  const grid = h('section', { class: 'courses' },
-    COURSES.map((c) => {
-      const p = courseProgress(c);
-      return h('a', { class: 'card course', href: `#/course/${c.id}`, style: `--accent:${c.color}` },
-        h('div', { class: 'course-icon' }, c.icon),
-        h('h3', null, c.title),
-        h('p', { class: 'muted' }, c.blurb),
-        h('div', { class: 'progress' }, h('div', { class: 'progress-fill', style: `width:${p * 100}%` })),
-        h('div', { class: 'small muted' }, `${c.lessons.filter((l) => isDone(c, l)).length} of ${c.lessons.length} lessons`));
-    }));
+  const card = (c: Course) => {
+    const p = courseProgress(c);
+    return h('a', { class: 'card course', href: `#/course/${c.id}`, style: `--accent:${c.color}` },
+      h('div', { class: 'course-icon' }, c.icon),
+      h('h3', null, c.title),
+      h('p', { class: 'muted' }, c.blurb),
+      h('div', { class: 'progress' }, h('div', { class: 'progress-fill', style: `width:${p * 100}%` })),
+      h('div', { class: 'small muted' }, `${c.lessons.filter((l) => isDone(c, l)).length} of ${c.lessons.length} lessons`));
+  };
+  const cats = CATEGORIES.map((k) => ({ ...k, courses: k.courses.filter((c) => c.lessons.length) })).filter((k) => k.courses.length);
+  const sections = h('div', null);
+  const tabs = h('div', { class: 'cat-tabs', role: 'tablist' });
+  const show = (id: string) => {
+    homeCat = id;
+    tabs.querySelectorAll<HTMLElement>('.cat-tab').forEach((t) => t.classList.toggle('on', t.dataset.cat === id));
+    sections.replaceChildren(...cats.filter((k) => id === 'all' || k.id === id).map((k) =>
+      h('section', null,
+        h('div', { class: 'cat-head' }, h('h2', null, k.title), h('span', { class: 'muted small' }, k.blurb)),
+        h('div', { class: 'courses' }, k.courses.map(card)))));
+  };
+  tabs.append(...[{ id: 'all', title: 'All' }, ...cats].map((k) =>
+    h('button', { class: 'cat-tab', role: 'tab', 'data-cat': k.id, onclick: () => show(k.id) }, k.title)));
+  show(cats.some((k) => k.id === homeCat) ? homeCat : 'all');
 
-  page(today, h('h2', { class: 'section-title' }, 'Courses'), grid,
+  page(today, h('h2', { class: 'section-title' }, 'Courses'), tabs, sections,
     h('p', { class: 'footnote muted' }, 'Learn by doing: every lesson is a run of small problems. Answer first, then see why.'));
 }
+
+let homeCat = 'all';
 
 // ---------------------------------------------------------------- course
 
@@ -123,7 +138,7 @@ function courseScreen(id: string) {
 // ---------------------------------------------------------------- lesson
 
 function lessonScreen(cid: string, lid: string) {
-  const c = COURSES.find((x) => x.id === cid);
+  const c = ALL_COURSES.find((x) => x.id === cid);
   const l = c?.lessons.find((x) => x.id === lid);
   if (!c || !l) return go('#/');
   const key = lessonKey(c, l);

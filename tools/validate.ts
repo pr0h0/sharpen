@@ -1,6 +1,6 @@
 // Content checks: run with `bun tools/validate.ts`. Fails (exit 1) on any malformed lesson step
 // or practice problem. Generators are run with many seeds, since a bad number is worse than none.
-import { COURSES as ALL } from '../src/courses';
+import { ALL_COURSES as ALL } from '../src/courses';
 import type { AskStep, Course, Step } from '../src/types';
 import { seeded } from '../src/ui';
 
@@ -46,6 +46,49 @@ function checkAsk(where: string, s: AskStep) {
     case 'task':
       if (typeof s.widget !== 'function') err(where, 'task without widget');
       break;
+    case 'multi': {
+      const right = s.options.filter((o) => o.correct).length;
+      if (right < 1) err(where, 'multi with no correct option');
+      if (s.options.length < 3) err(where, 'multi needs at least 3 options');
+      const texts = s.options.map((o) => o.text.trim());
+      if (new Set(texts).size !== texts.length) err(where, `duplicate options: ${texts.join(' | ')}`);
+      break;
+    }
+    case 'match': {
+      if (s.pairs.length < 2) err(where, 'match needs at least 2 pairs');
+      const L = s.pairs.map((p) => p[0].trim()), R = s.pairs.map((p) => p[1].trim());
+      if (new Set(L).size !== L.length || new Set(R).size !== R.length) err(where, 'duplicate match items (pairs must be distinguishable)');
+      break;
+    }
+    case 'sort': {
+      if (s.bins.length < 2) err(where, 'sort needs at least 2 bins');
+      if (s.items.length < 3) err(where, 'sort needs at least 3 items');
+      for (const it of s.items) if (!(it.bin >= 0 && it.bin < s.bins.length && Number.isInteger(it.bin))) err(where, `item "${it.text}" has bad bin ${it.bin}`);
+      const texts = s.items.map((i) => i.text.trim());
+      if (new Set(texts).size !== texts.length) err(where, 'duplicate sort items');
+      break;
+    }
+    case 'fill': {
+      const marks = [...s.template.matchAll(/\[\[(\d+)\]\]/g)].map((m) => Number(m[1]));
+      if (!marks.length) err(where, 'fill template has no [[k]] blanks');
+      if (new Set(marks).size !== marks.length) err(where, 'fill blank used twice');
+      if (marks.length !== s.blanks.length || marks.some((k) => k >= s.blanks.length)) err(where, `fill template blanks ${marks} don't match ${s.blanks.length} blank specs`);
+      s.blanks.forEach((b, k) => {
+        if (!(b.answer >= 0 && b.answer < b.options.length)) err(where, `blank ${k} answer index ${b.answer} out of range`);
+        if (b.options.length < 2) err(where, `blank ${k} has fewer than 2 tiles`);
+        if (new Set(b.options).size !== b.options.length) err(where, `blank ${k} has duplicate tiles`);
+      });
+      break;
+    }
+    case 'point': {
+      const { x, y } = s.plot;
+      if (!(s.tol > 0)) err(where, 'point needs tol > 0');
+      if (s.answer.x < x[0] || s.answer.x > x[1]) err(where, `answer x ${s.answer.x} outside plot ${x}`);
+      if (s.answer.y !== undefined && (!y || s.answer.y < y[0] || s.answer.y > y[1])) err(where, `answer y ${s.answer.y} outside plot ${y}`);
+      if (s.snap && Math.abs(s.answer.x / s.snap - Math.round(s.answer.x / s.snap)) > 1e-6) err(where, `answer x ${s.answer.x} not on snap grid ${s.snap}`);
+      if (s.snap && s.answer.y !== undefined && Math.abs(s.answer.y / s.snap - Math.round(s.answer.y / s.snap)) > 1e-6) err(where, `answer y not on snap grid`);
+      break;
+    }
   }
 }
 

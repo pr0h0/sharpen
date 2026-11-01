@@ -41,6 +41,65 @@
           document.querySelectorAll('.order li')[from].querySelector('[aria-label="Move up"]').click();
           await sleep(20);
         }
+      } else if (st.kind === 'multi') {
+        const plain = (t) => t.replace(/\*\*|\*|`/g, '').trim();
+        const opts = [...document.querySelectorAll('.option')];
+        // Wrong: pick every option. Right: exactly the correct ones (clear picks first).
+        for (const el of opts) if (el.classList.contains('picked')) el.click();
+        for (const o of st.options) {
+          if (right && !o.correct) continue;
+          const el = opts.find((b) => b.textContent.trim() === plain(o.text));
+          if (!el) { errors.push(`multi option not found: ${o.text}`); return; }
+          el.click();
+        }
+        if (!right && st.options.every((o) => o.correct)) opts[0].click(); // unpick one
+      } else if (st.kind === 'match') {
+        const plain = (t) => t.replace(/\*\*|\*|`/g, '').trim();
+        const cols = document.querySelectorAll('.match-col');
+        const L = [...cols[0].querySelectorAll('.match-item')], R = [...cols[1].querySelectorAll('.match-item')];
+        const n = st.pairs.length;
+        for (let k = 0; k < n; k++) {
+          const want = st.pairs[right ? k : (k + 1) % n][1];
+          L[k].click();
+          const r = R.find((b) => b.textContent.trim() === plain(want));
+          if (!r) { errors.push(`match item not found: ${want}`); return; }
+          r.click();
+          await sleep(10);
+        }
+      } else if (st.kind === 'sort') {
+        for (let guard2 = 0; guard2 < 60; guard2++) {
+          // Pick a chip still to place (tray first), then its bin.
+          const chips = [...document.querySelectorAll('.chip-item')];
+          const todo = chips.find((c) => {
+            const k = Number(c.dataset.k), bin = c.closest('.bin');
+            const want = right ? st.items[k].bin : (st.items[k].bin + 1) % st.bins.length;
+            return !bin || Number(bin.dataset.bin) !== want;
+          });
+          if (!todo) break;
+          const k = Number(todo.dataset.k);
+          if (!todo.classList.contains('sel')) todo.click();
+          await sleep(5);
+          const want = right ? st.items[k].bin : (st.items[k].bin + 1) % st.bins.length;
+          document.querySelectorAll('.bin')[want].querySelector('.bin-head').click();
+          await sleep(5);
+        }
+      } else if (st.kind === 'fill') {
+        for (let k = 0; k < st.blanks.length; k++) {
+          document.querySelector(`.slot[data-k="${k}"]`).click();
+          await sleep(5);
+          const b = st.blanks[k];
+          const wantText = b.options[right ? b.answer : (b.answer + 1) % b.options.length];
+          const tile = [...document.querySelectorAll('.bank .tile')].find((t) => t.textContent === wantText);
+          if (!tile) { errors.push(`fill tile not found: ${wantText}`); return; }
+          tile.click();
+          await sleep(5);
+        }
+      } else if (st.kind === 'point') {
+        const el = document.querySelector('.plot.pickable');
+        const [x0, x1] = st.plot.x;
+        const y = st.answer.y ?? 0;
+        const x = right ? st.answer.x : (st.answer.x - x0 > (x1 - st.answer.x) ? x0 : x1);
+        el.__place(x, y);
       } else if (st.kind === 'task') {
         return 'skip';
       }
@@ -57,7 +116,7 @@
       btn('Continue')?.click();
       continue;
     }
-    if (wrongFirst && st.kind !== 'order') {
+    if (wrongFirst && st.kind !== 'order' && !(st.kind === 'point' && Math.min(st.answer.x - st.plot.x[0], st.plot.x[1] - st.answer.x) <= st.tol)) {
       await answer(false);
       if (!document.querySelector('.feedback.bad')) errors.push(`step ${n}: wrong answer not marked wrong`);
       btn('Try again')?.click();

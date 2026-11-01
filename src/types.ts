@@ -77,7 +77,81 @@ export interface TaskStep extends AskBase {
   widget: Widget;
 }
 
-export type AskStep = ChoiceStep | NumberStep | EstimateStep | OrderStep | TaskStep;
+/** Select all that apply: any number of options are correct (at least one). */
+export interface MultiStep extends AskBase {
+  kind: 'multi';
+  options: Choice[];
+  ordered?: boolean;
+}
+
+/** Pair each left item with its right item. Pairs are given matched; the right column is shuffled. */
+export interface MatchStep extends AskBase {
+  kind: 'match';
+  pairs: [string, string][];
+  /** Column headings, e.g. ['Graph', 'Equation']. */
+  heads?: [string, string];
+}
+
+/** Sort items into bins (tap an item, then a bin). */
+export interface SortStep extends AskBase {
+  kind: 'sort';
+  bins: string[];
+  /** bin = index into bins. */
+  items: { text: string; bin: number }[];
+}
+
+/**
+ * Fill in the blanks from tiles. The template marks blank k as [[k]]; blanks[k] lists its tiles and
+ * which one is right. With code: true the template is shown as monospace code, newlines kept.
+ */
+export interface FillStep extends AskBase {
+  kind: 'fill';
+  template: string;
+  blanks: { options: string[]; answer: number }[];
+  code?: boolean;
+}
+
+/** Click or drag to place a point on a plot (or a number line when plot.y is absent). */
+export interface PointStep extends AskBase {
+  kind: 'point';
+  plot: PlotSpec;
+  answer: { x: number; y?: number };
+  /** Allowed distance from the answer in data units, per axis. */
+  tol: number;
+  /** Snap the marker to multiples of this (data units). */
+  snap?: number;
+}
+
+/** A plot: axes and layers in data coordinates (see src/viz/plot.ts). */
+export interface PlotSpec {
+  x: [number, number];
+  /** Leave out for a number line. */
+  y?: [number, number];
+  xlabel?: string;
+  ylabel?: string;
+  /** Tick spacing per axis (default: about 5-10 ticks). */
+  ticks?: [number, number?];
+  /** Same scale on both axes (geometry). */
+  equal?: boolean;
+  /** Pixel size of the drawing area (default 520 x 320, number line 520 x 90). */
+  size?: [number, number];
+  layers?: Layer[];
+  grid?: boolean;
+  tickFormat?: (v: number) => string;
+}
+
+export type Layer =
+  | { type: 'fn'; f: (x: number) => number; color?: string; dash?: boolean; label?: string; width?: number; from?: number; to?: number }
+  | { type: 'line'; pts: [number, number][]; color?: string; dash?: boolean; label?: string; width?: number; closed?: boolean; fill?: string }
+  | { type: 'dots'; pts: [number, number][]; color?: string; r?: number; label?: string; labels?: string[] }
+  | { type: 'bars'; pts: [number, number][]; width: number; color?: string; label?: string }
+  | { type: 'area'; f: (x: number) => number; from: number; to: number; color?: string; base?: (x: number) => number }
+  | { type: 'vline'; x: number; color?: string; label?: string; dash?: boolean }
+  | { type: 'hline'; y: number; color?: string; label?: string; dash?: boolean }
+  | { type: 'text'; x: number; y: number; text: string; color?: string; anchor?: 'start' | 'middle' | 'end' }
+  | { type: 'arrow'; from: [number, number]; to: [number, number]; color?: string; label?: string };
+
+export type AskStep = ChoiceStep | NumberStep | EstimateStep | OrderStep | TaskStep | MultiStep | MatchStep | SortStep | FillStep | PointStep;
 export type Step = ReadStep | AskStep;
 
 /** Makes a fresh practice problem (new numbers, same skill). */
