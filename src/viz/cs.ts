@@ -40,7 +40,7 @@ export interface TraceFrame {
 
 /** Step through a program: highlighted line, variable table, output so far. */
 export function codeTrace(src: string, frames: TraceFrame[]): HTMLElement {
-  const show = (v: unknown) => Array.isArray(v) ? `[${v.join(', ')}]` : typeof v === 'string' ? `"${v}"` : String(v);
+  const show = (v: unknown): string => Array.isArray(v) ? `[${v.map(show).join(', ')}]` : typeof v === 'string' ? `'${v}'` : typeof v === 'boolean' ? (v ? 'True' : 'False') : String(v);
   return stepper(frames.length, (i) => {
     const f = frames[i];
     const prev = frames[i - 1];

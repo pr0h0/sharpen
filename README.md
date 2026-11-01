@@ -7,8 +7,18 @@ and what you missed comes back sooner.
 
 ## Courses
 
+Grouped like Brilliant's catalog: Math, Probability & Data, Computer Science, Science, plus Logic & Reasoning and Decisions & Strategy.
+
 | Course | Lessons |
 | --- | --- |
+| Mathematical Thinking | patterns, parity and invariants, pigeonhole, counterexamples, proof by picture, primes, induction, working backwards |
+| Algebra & Functions | balancing, expressions, functions, slope and lines, systems, linear vs exponential, quadratics, inverses and logs |
+| Geometry & Measurement | angles, area by rearranging, Pythagoras, circles and π, similarity, the square-cube law, transformations, estimating space |
+| Data & Statistics | reading charts, mean vs median, spread, sampling, bias, correlation, Simpson's paradox, misleading graphs |
+| Thinking in Code | sequencing, variables, conditionals, loops, lists, functions, debugging, programming patterns |
+| Algorithms | what an algorithm is, searching, sorting, growth rates, graphs, shortest paths, greedy, recursion and DP |
+| How AI Works | learning from examples, decision boundaries, measuring error, gradient descent, neurons, overfitting, language models, using AI wisely |
+| Scientific Thinking | Fermi estimates, units, motion graphs, forces, energy, waves, experiments and controls, models |
 | Probability | chances, counting, the long run, and/or/at least one, conditioning, expected value, Monty Hall, reading risk |
 | Bayesian Thinking | base rates, natural frequencies, false positives, updating, likelihood ratios, stacking evidence, P(A given B) vs P(B given A), everyday Bayes |
 | Logic | negation, if-then, checking rules (Wason), necessary and sufficient, syllogisms, knights and knaves, grid deduction, valid vs sound |
@@ -34,6 +44,7 @@ bunx tsc --noEmit                        # types
 bun tools/validate.ts                    # every step, and every practice generator on 500 seeds
 bun tools/validate.ts src/courses/x.ts   # just one course
 tools/play_course.sh logic               # plays every lesson in headless Chromium, wrong-first on every 3rd question
+QA_SLOT=3 tools/play_course.sh logic     # same, with a private build and ports (several can run at once)
 ```
 
 `tools/web_qa.py OUT '[steps]'` drives the app in headless Chromium (clicks, CSS-selector clicks,
@@ -43,13 +54,15 @@ step is on screen (the player exposes it as `globalThis.__sharpenStep`).
 ## Code
 
 ```
-src/types.ts        content model: lessons of steps (read, choice, number, estimate, order, task) and practice generators
+src/types.ts        content model: lessons of steps (read, choice, multi, number, estimate, order, match, sort, fill, point, task) and practice generators
 src/player.ts       plays steps one per screen: check, feedback, hint, try again / show answer, summary
 src/app.ts          screens: home, course, lesson, daily practice, settings (hash routing)
 src/store.ts        progress, streak, daily goal, spaced review
 src/ui.ts           DOM helpers, light markdown, seeded random, number formatting and parsing
-src/widgets/*.ts    interactive pieces (dice grid, Monty Hall, screening lab, bankroll simulator, truth tables, 2-4-6 game, take-away game, payoff matrices…)
-src/courses/*.ts    the six courses; index.ts sets their order
+src/viz/*.ts        shared visuals: plots (functions, scatter, histograms, geometry, number lines), charts, tables,
+                    slider explorers, steppers, code listings and traces, array bars, networks, cell grids
+src/widgets/*.ts    course-specific interactive pieces (dice grid, Monty Hall, screening lab, bankroll simulator, truth tables, 2-4-6 game, take-away game, payoff matrices…)
+src/courses/*.ts    the courses; index.ts groups them into categories (_kit.ts: every exercise type once, for QA)
 public/             index.html and style.css (light and dark themes)
 ```
 

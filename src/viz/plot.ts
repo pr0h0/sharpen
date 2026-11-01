@@ -35,7 +35,7 @@ const fmtTick = (v: number) => {
 
 export function plot(spec: PlotSpec): PlotView {
   const line = !spec.y;
-  const [W, H] = spec.size ?? (line ? [600, 90] : [600, 360]);
+  const [W, H] = spec.size ?? (line ? [420, 80] : [440, 280]);
   const pad = { l: line ? 20 : 46, r: 20, t: line ? 10 : 14, b: line ? 36 : 38 };
   const [x0, x1] = spec.x;
   const [y0, y1] = spec.y ?? [0, 1];
