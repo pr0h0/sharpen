@@ -1,0 +1,12 @@
+{
+  "name": "sharpen",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bash tools/build.sh",
+    "check": "tsc --noEmit && bun tools/validate.ts"
+  },
+  "devDependencies": {
+    "typescript": "5.6.3"
+  }
+}
