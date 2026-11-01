@@ -55,6 +55,10 @@ export function play(root: HTMLElement, s: Session) {
       }
     } else if (e.key === 'Escape') {
       s.onClose();
+    } else if (/^[1-9]$/.test(e.key) && !(e.target instanceof HTMLInputElement)) {
+      // Number keys pick multiple-choice options.
+      const opt = body.querySelectorAll<HTMLButtonElement>('.option')[Number(e.key) - 1];
+      opt?.click();
     }
   };
   document.addEventListener('keydown', keyHandler);
