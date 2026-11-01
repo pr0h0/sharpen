@@ -1,7 +1,8 @@
 // Screens and routing (#/, #/course/:id, #/lesson/:course/:lesson, #/practice, #/settings).
 import { ALL_COURSES, CATEGORIES, COURSES } from './courses';
 import { play, type Item, type Result } from './player';
-import { dueReviews, liveStreak, resetAll, save, schedule, solvedToday, state, countSolved, touchStreak, today } from './store';
+import { addXp, dueReviews, liveStreak, save, schedule, setSaveHook, setSetting, solvedToday, state, countSolved, touchStreak, today } from './store';
+import { currentAccount, eraseEverywhere, lastSyncTime, onRemoteState, onSyncChange, queueSync, register, signIn, signOut, startSync, syncNow, syncStatus } from './sync';
 import type { Course, Lesson } from './types';
 import { h, md, pick, seeded, shuffle } from './ui';
 
@@ -9,8 +10,16 @@ const root = document.getElementById('app')!;
 
 export function start() {
   applyTheme();
+  setSaveHook(queueSync);
+  // A pull brought new progress: redraw, unless a lesson is on screen (it picks it up after).
+  onRemoteState(() => {
+    applyTheme();
+    if (!/^#\/(lesson|practice)/.test(location.hash)) route();
+  });
+  onSyncChange(updateAccountChip);
   window.addEventListener('hashchange', route);
   route();
+  startSync();
 }
 
 function route() {
@@ -20,6 +29,7 @@ function route() {
   if (parts[0] === 'lesson' && parts[1] && parts[2]) return lessonScreen(parts[1], parts[2]);
   if (parts[0] === 'practice') return practiceScreen();
   if (parts[0] === 'settings') return settingsScreen();
+  if (parts[0] === 'account') return accountScreen();
   homeScreen();
 }
 
@@ -35,12 +45,44 @@ function topBar(): HTMLElement {
   const goal = state.dailyGoal;
   const solved = solvedToday();
   return h('header', { class: 'top' },
-    h('a', { class: 'brand', href: '#/' }, h('span', { class: 'brand-mark' }, '◆'), 'Sharpen'),
+    h('a', { class: 'brand', href: '#/', 'aria-label': 'Sharpen home' }, h('span', { class: 'brand-mark' }, '◆'), h('span', { class: 'brand-text' }, 'Sharpen')),
     h('div', { class: 'top-stats' },
       h('span', { class: 'chip', title: 'Days in a row with some practice' }, '🔥 ', String(liveStreak())),
       h('span', { class: 'chip', title: `Today: ${solved} of ${goal} problems` }, ring(Math.min(1, solved / goal)), ` ${solved}/${goal}`),
       h('span', { class: 'chip', title: 'Experience points' }, '⚡ ', state.xp.toLocaleString('en-US')),
+      accountChip(),
       h('a', { class: 'chip link', href: '#/settings', title: 'Settings', 'aria-label': 'Settings' }, '⚙')));
+}
+
+const STATUS_TEXT: Record<string, string> = {
+  off: 'Not syncing', syncing: 'Syncing…', synced: 'Synced', offline: 'Offline: will sync when back', error: 'Sync problem: will retry',
+};
+
+function accountChip(): HTMLElement {
+  const a = h('a', { class: 'chip link account-chip', href: '#/account' });
+  fillAccountChip(a);
+  return a;
+}
+
+function fillAccountChip(a: HTMLElement) {
+  const acc = currentAccount();
+  const st = syncStatus();
+  a.title = acc ? `${acc.username}: ${STATUS_TEXT[st]}` : 'Sign in to sync progress across devices';
+  a.dataset.status = st;
+  a.setAttribute('aria-label', acc ? `Account: ${acc.username}` : 'Sign in');
+  a.replaceChildren(...(acc ? [h('span', { class: 'sync-dot' })] : []), h('span', { class: 'acct-icon' }, '👤'), h('span', { class: 'acct-name' }, acc ? acc.username : 'Sign in'));
+}
+
+function updateAccountChip() {
+  document.querySelectorAll<HTMLElement>('.account-chip').forEach(fillAccountChip);
+  const live = document.getElementById('sync-line');
+  if (live) live.textContent = syncLine();
+}
+
+function syncLine(): string {
+  const t = lastSyncTime();
+  const st = syncStatus();
+  return STATUS_TEXT[st] + (st === 'synced' && t ? ` · ${new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '');
 }
 
 function ring(f: number): SVGSVGElement {
@@ -158,7 +200,7 @@ function lessonScreen(cid: string, lid: string) {
       touchStreak();
       // The lesson's skills join spaced review.
       l.practice.forEach((_g, gi) => schedule(`${key}/${gi}`, false));
-      state.xp += first ? 20 : 0;
+      if (first) addXp(20);
       save();
       summary(r, c, first ? 20 : 0, () => {
         const nx = nextLesson(c);
@@ -225,15 +267,16 @@ function practiceScreen() {
 // ---------------------------------------------------------------- settings
 
 function settingsScreen() {
-  const goalSel = h('select', { onchange: (e: Event) => { state.dailyGoal = Number((e.target as HTMLSelectElement).value); save(); } },
+  const goalSel = h('select', { onchange: (e: Event) => { setSetting('dailyGoal', Number((e.target as HTMLSelectElement).value)); } },
     [5, 10, 20, 30].map((n) => h('option', { value: n, selected: n === state.dailyGoal }, `${n} problems a day`)));
-  const themeSel = h('select', { onchange: (e: Event) => { state.theme = (e.target as HTMLSelectElement).value as typeof state.theme; save(); applyTheme(); } },
+  const themeSel = h('select', { onchange: (e: Event) => { setSetting('theme', (e.target as HTMLSelectElement).value as typeof state.theme); applyTheme(); } },
     [['auto', 'Match the system'], ['light', 'Light'], ['dark', 'Dark']].map(([v, t]) => h('option', { value: v, selected: v === state.theme }, t)));
   const acc = state.answered ? Math.round((state.correctFirst / state.answered) * 100) : 0;
   page(
     h('a', { class: 'back', href: '#/' }, '‹ Home'),
     h('h1', null, 'Settings'),
     h('div', { class: 'card settings' },
+      h('label', null, 'Account', h('a', { href: '#/account' }, currentAccount() ? `${currentAccount()!.username} · ${STATUS_TEXT[syncStatus()]}` : 'Sign in to sync')),
       h('label', null, 'Daily goal', goalSel),
       h('label', null, 'Theme', themeSel)),
     h('h2', { class: 'section-title' }, 'Your numbers'),
@@ -244,7 +287,65 @@ function settingsScreen() {
       stat(String(state.review.length), 'skills in review')),
     h('div', { class: 'card settings danger' },
       md('**Start over.** Clears every lesson, your streak and your review queue on this device.'),
-      h('button', { class: 'ghost', onclick: () => { if (confirm('Erase all progress on this device?')) { resetAll(); go('#/'); } } }, 'Erase progress')));
+      h('button', { class: 'ghost', onclick: async () => {
+        const where = currentAccount() ? 'on every device signed in to this account' : 'on this device';
+        if (confirm(`Erase all progress ${where}?`)) { await eraseEverywhere(); applyTheme(); go('#/'); }
+      } }, 'Erase progress')));
+}
+
+// ---------------------------------------------------------------- account
+
+function accountScreen() {
+  const acc = currentAccount();
+  if (acc) {
+    page(
+      h('a', { class: 'back', href: '#/' }, '‹ Home'),
+      h('h1', null, 'Account'),
+      h('div', { class: 'card account' },
+        h('p', null, 'Signed in as ', h('strong', null, acc.username), '.'),
+        h('p', { class: 'muted' }, 'Your progress is saved to this account and kept in step on every device you sign in on. You can keep learning offline; it syncs when you’re back.'),
+        h('p', { id: 'sync-line', class: 'sync-line' }, syncLine()),
+        h('div', { class: 'account-btns' },
+          h('button', { class: 'ghost', onclick: () => void syncNow() }, 'Sync now'),
+          h('button', { class: 'ghost', onclick: async () => { await signOut(); applyTheme(); go('#/'); } }, 'Sign out'))));
+    return;
+  }
+  let mode: 'login' | 'register' = 'login';
+  const user = h('input', { class: 'num text', type: 'text', autocomplete: 'username', placeholder: 'Username', autocapitalize: 'none', spellcheck: false, required: true });
+  const pass = h('input', { class: 'num text', type: 'password', autocomplete: 'current-password', placeholder: 'Password', required: true });
+  const err = h('p', { class: 'form-error', role: 'alert', hidden: true });
+  const submit = h('button', { class: 'primary', type: 'submit' });
+  const note = h('p', { class: 'muted small' });
+  const tabs = h('div', { class: 'cat-tabs' });
+  const draw = () => {
+    tabs.replaceChildren(
+      h('button', { class: `cat-tab${mode === 'login' ? ' on' : ''}`, type: 'button', onclick: () => { mode = 'login'; draw(); } }, 'Sign in'),
+      h('button', { class: `cat-tab${mode === 'register' ? ' on' : ''}`, type: 'button', onclick: () => { mode = 'register'; draw(); } }, 'Create account'));
+    submit.textContent = mode === 'login' ? 'Sign in' : 'Create account';
+    pass.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+    pass.placeholder = mode === 'login' ? 'Password' : 'Password (8+ characters)';
+    note.textContent = mode === 'login'
+      ? 'Progress made on this device before signing in is added to your account.'
+      : 'Usernames: 3 to 32 letters, digits, dots, dashes or underscores. Your progress so far comes with you.';
+    err.hidden = true;
+  };
+  const form = h('form', { class: 'card account', onsubmit: async (e: Event) => {
+    e.preventDefault();
+    submit.disabled = true;
+    err.hidden = true;
+    const problem = await (mode === 'login' ? signIn : register)(user.value.trim(), pass.value);
+    submit.disabled = false;
+    if (problem) { err.textContent = problem; err.hidden = false; return; }
+    applyTheme();
+    go('#/');
+  } }, tabs, user, pass, err, submit, note);
+  draw();
+  page(
+    h('a', { class: 'back', href: '#/' }, '‹ Home'),
+    h('h1', null, 'Sync your progress'),
+    h('p', { class: 'muted' }, 'Sign in on each device to keep lessons, streak, XP and your review queue in step.'),
+    form);
+  setTimeout(() => user.focus(), 30);
 }
 
 function applyTheme() {

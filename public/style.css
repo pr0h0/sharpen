@@ -410,17 +410,35 @@ pre.trace-out { margin: 0; background: #11151f; color: #d7e0ee; padding: 8px 10p
 .cat-head { display: flex; align-items: baseline; gap: 10px; margin: 26px 0 10px; }
 .cat-head h2 { margin: 0; font-size: 1.25rem; }
 
+/* ---------------------------------------------------------------- account */
+.account { display: grid; gap: 12px; max-width: 440px; }
+.account .num.text { width: 100%; font-size: 1.05rem; }
+.account-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.form-error { color: var(--bad); margin: 0; font-weight: 600; }
+.sync-line { font-weight: 600; margin: 0; }
+.acct-name { display: inline-block; white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; margin-left: 4px; }
+.acct-icon { font-size: .85em; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 5px; display: inline-block; }
+.account-chip[data-status="synced"] .sync-dot { background: var(--good); }
+.account-chip[data-status="syncing"] .sync-dot { background: var(--c5); }
+.account-chip[data-status="offline"] .sync-dot, .account-chip[data-status="error"] .sync-dot { background: var(--bad); }
+
 /* ---------------------------------------------------------------- small screens */
+@media (max-width: 420px) {
+  .brand-text { display: none; }
+}
 @media (max-width: 640px) {
   body { font-size: 16px; }
   .today { grid-template-columns: 1fr; }
   .top { padding: 8px 12px; }
   .brand { font-size: 1rem; }
-  .chip { font-size: .8rem; padding: .1em .5em; }
+  .chip { font-size: .8rem; padding: .1em .45em; }
+  .top-stats { gap: 4px; }
   .step { padding: 4px 14px 20px; }
   .step-foot { padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); }
   .step-foot .primary { flex: 1; }
   .player-title { display: none; }
+  .account-chip .acct-name { display: none; }
   .door { width: 72px; height: 96px; }
   .trace { grid-template-columns: 1fr; }
   .match { gap: 8px; }

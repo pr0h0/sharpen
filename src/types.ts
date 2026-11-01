@@ -40,7 +40,10 @@ interface AskBase extends StepBase {
 export interface ChoiceStep extends AskBase {
   kind: 'choice';
   options: Choice[];
-  /** Keep the given order (e.g. numeric options); otherwise options are shuffled. */
+  /**
+   * Ignored: options are shuffled every time the question is shown (purely numeric option sets are
+   * sorted by value instead), so the answer's position never gives it away.
+   */
   ordered?: boolean;
 }
 

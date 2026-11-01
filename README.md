@@ -31,17 +31,32 @@ Grouped like Brilliant's catalog: Math, Probability & Data, Computer Science, Sc
 ```sh
 bun install            # TypeScript, for the type check
 bash tools/build.sh    # builds dist/ (served on http://localhost:4956 by the sharpen-web user service)
-python3 tools/serve.py # or serve dist/ yourself
+python3 tools/serve.py # site + accounts API on :4956 (static only: serve dist/ any other way)
 ```
 
 Progress lives in the browser (localStorage): lessons done, streak, daily goal, XP and the review
-queue (Leitner boxes: 0, 1, 3, 7, 16, 35 days).
+queue (Leitner boxes: 0, 1, 3, 7, 16, 35 days). Answer options are shuffled every time a question is
+shown (numeric option sets are sorted by value), so position never gives the answer away.
+
+## Accounts and sync
+
+`tools/serve.py` serves the site and a small JSON API on SQLite (`data/sharpen.db`, or `$SHARPEN_DB`):
+register, sign in/out (scrypt-hashed passwords, HttpOnly session cookie, throttled wrong passwords)
+and one progress document per account with a version number for compare-and-swap writes.
+
+Devices keep working offline and sync shortly after each change, on focus and every few minutes.
+Merging (`join` in `src/store.ts`) is commutative and idempotent, so repeating a sync, losing a
+reply, or a browser handing back an older storage snapshot can never double count:
+XP/answer counters are kept per device (merge = per-device max, totals = sums), finished lessons
+only grow, review items and settings carry a change time (newest wins), and "erase progress"
+starts a new epoch that replaces older copies everywhere.
 
 ## Checks
 
 ```sh
 bunx tsc --noEmit                        # types
 bun tools/validate.ts                    # every step, and every practice generator on 500 seeds
+bun test tools/test                      # progress-merge properties (no double counting)
 bun tools/validate.ts src/courses/x.ts   # just one course
 tools/play_course.sh logic               # plays every lesson in headless Chromium, wrong-first on every 3rd question
 QA_SLOT=3 tools/play_course.sh logic     # same, with a private build and ports (several can run at once)
@@ -57,7 +72,8 @@ step is on screen (the player exposes it as `globalThis.__sharpenStep`).
 src/types.ts        content model: lessons of steps (read, choice, multi, number, estimate, order, match, sort, fill, point, task) and practice generators
 src/player.ts       plays steps one per screen: check, feedback, hint, try again / show answer, summary
 src/app.ts          screens: home, course, lesson, daily practice, settings (hash routing)
-src/store.ts        progress, streak, daily goal, spaced review
+src/store.ts        progress, streak, daily goal, spaced review, and the merge used by sync
+src/sync.ts         accounts and progress sync with the server
 src/ui.ts           DOM helpers, light markdown, seeded random, number formatting and parsing
 src/viz/*.ts        shared visuals: plots (functions, scatter, histograms, geometry, number lines), charts, tables,
                     slider explorers, steppers, code listings and traces, array bars, networks, cell grids

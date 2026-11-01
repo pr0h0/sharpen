@@ -1,6 +1,6 @@
 // Plays a sequence of steps, one per screen: lessons, daily practice and review all use this.
 import type { AskStep, ChoiceStep, EstimateStep, FillStep, MatchStep, MultiStep, NumberStep, OrderStep, PointStep, SortStep, Step, TaskStep } from './types';
-import { h, md, parseNumber, shuffle, seeded, svg } from './ui';
+import { h, md, parseNumber, shuffle, svg } from './ui';
 import { plot } from './viz/plot';
 
 export interface Item {
@@ -181,7 +181,7 @@ export function play(root: HTMLElement, s: Session) {
 
   function choiceInput(st: ChoiceStep, ready: (ok: boolean) => void): [() => [boolean, string | undefined], () => void] {
     widgetBox(st);
-    const opts = st.ordered ? st.options : shuffle(seeded(st.options.length * 7919 + (st.body?.length ?? 0)), st.options);
+    const opts = arrange(st.options);
     let chosen = -1;
     const btns = opts.map((o, k) =>
       h('button', { class: 'option', onclick: () => {
@@ -244,7 +244,7 @@ export function play(root: HTMLElement, s: Session) {
 
   function orderInput(st: OrderStep, ready: (ok: boolean) => void): [() => [boolean, string | undefined], () => void] {
     widgetBox(st);
-    let cur = shuffle(seeded(st.items.length * 31 + st.items[0].length), st.items);
+    let cur = shuffle(Math.random, st.items);
     if (cur.every((x, k) => x === st.items[k])) cur = [...cur.slice(1), cur[0]];
     const list = h('ol', { class: 'order' });
     const draw = () => {
@@ -278,11 +278,10 @@ export function play(root: HTMLElement, s: Session) {
 
   type Judge = [() => [boolean, string | undefined], () => void];
   const locked = () => body.classList.contains('locked');
-  const seedOf = (st: AskStep) => (st.body?.length ?? 0) * 131 + (st.title?.length ?? 0) * 7 + 1;
 
   function multiInput(st: MultiStep, ready: (ok: boolean) => void): Judge {
     widgetBox(st);
-    const opts = st.ordered ? st.options : shuffle(seeded(st.options.length * 7919 + seedOf(st)), st.options);
+    const opts = arrange(st.options);
     const on = opts.map(() => false);
     const btns = opts.map((o, k) =>
       h('button', { class: 'option multi', role: 'checkbox', 'aria-checked': 'false', onclick: () => {
@@ -316,7 +315,7 @@ export function play(root: HTMLElement, s: Session) {
   function matchInput(st: MatchStep, ready: (ok: boolean) => void): Judge {
     widgetBox(st);
     const n = st.pairs.length;
-    const rightOrder = shuffle(seeded(n * 977 + seedOf(st)), st.pairs.map((_, k) => k));
+    const rightOrder = shuffle(Math.random, st.pairs.map((_, k) => k));
     if (rightOrder.every((x, k) => x === k) && n > 1) rightOrder.push(rightOrder.shift()!);
     const link: number[] = Array(n).fill(-1); // left k -> right index (into pairs)
     let sel = -1;
@@ -364,7 +363,7 @@ export function play(root: HTMLElement, s: Session) {
 
   function sortInput(st: SortStep, ready: (ok: boolean) => void): Judge {
     widgetBox(st);
-    const order = shuffle(seeded(st.items.length * 613 + seedOf(st)), st.items.map((_, k) => k));
+    const order = shuffle(Math.random, st.items.map((_, k) => k));
     const place: number[] = st.items.map(() => -1);
     let sel = order[0];
     const chip = (k: number) => h('button', { class: `chip-item${k === sel ? ' sel' : ''}`, 'data-k': k, onclick: () => { if (locked()) return; sel = sel === k ? -1 : k; draw(); } }, md(st.items[k].text));
@@ -406,6 +405,8 @@ export function play(root: HTMLElement, s: Session) {
   function fillInput(st: FillStep, ready: (ok: boolean) => void): Judge {
     widgetBox(st);
     const val: number[] = st.blanks.map(() => -1);
+    // Tile order is fixed per showing (fresh each time), so tiles don't jump while answering.
+    const tileOrder = st.blanks.map((b) => shuffle(Math.random, b.options.map((_, j) => j)));
     let active = 0;
     const slots: HTMLButtonElement[] = [];
     const tpl = h(st.code ? 'pre' : 'div', { class: st.code ? 'code fill-code' : 'fill-text' });
@@ -427,7 +428,7 @@ export function play(root: HTMLElement, s: Session) {
         b.classList.remove('wrong', 'right');
       });
       const bl = st.blanks[active];
-      const order = shuffle(seeded(active * 37 + bl.options.length + seedOf(st)), bl.options.map((_, j) => j));
+      const order = tileOrder[active];
       bank.replaceChildren(...(bl ? order.map((j) => h('button', { class: `tile${val[active] === j ? ' picked' : ''}`, onclick: () => {
         if (locked()) return;
         val[active] = j;
@@ -514,6 +515,21 @@ export function play(root: HTMLElement, s: Session) {
   }
 
   show();
+}
+
+/**
+ * Option order for a question, fresh every time it is shown, so the right answer's position
+ * carries no information and has to be worked out. Purely numeric options are sorted by value
+ * instead (a scale reads better, and the position then depends only on the answer).
+ */
+const NUMERIC = /^\s*[-−]?\$?[\d.,]+\s*(%|[a-zA-Z²³/ ]{0,12})?\s*$/;
+function arrange<T extends { text: string }>(options: T[]): T[] {
+  const plain = options.map((o) => o.text.replace(/\*\*|`/g, ''));
+  if (options.length > 2 && plain.every((t) => NUMERIC.test(t) && !t.includes("/"))) {
+    const val = (t: string) => Number(t.replace(/[^\d.\-−]/g, '').replace('−', '-'));
+    if (plain.every((t) => Number.isFinite(val(t)))) return options.map((o, k) => [o, val(plain[k])] as const).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
+  }
+  return shuffle(Math.random, options);
 }
 
 const PRAISE = ['Correct!', 'Nice.', 'Exactly.', 'Right.', 'Spot on.', 'Yes!'];

@@ -10,7 +10,7 @@ mkdir -p "$out"; rm -rf "$out/prof"
 # without touching dist/ (the live site) or each other.
 if [[ -n "${QA_SLOT:-}" ]]; then
   OUT="$out/dist" bash tools/build.sh > /dev/null
-  python3 tools/serve.py $((4960 + QA_SLOT)) 127.0.0.1 "$out/dist" & srv=$!
+  SHARPEN_DB="$out/qa.db" python3 tools/serve.py $((4960 + QA_SLOT)) 127.0.0.1 "$out/dist" & srv=$!
   trap 'kill $srv 2>/dev/null' EXIT
   export QA_URL="http://127.0.0.1:$((4960 + QA_SLOT))/" QA_DEBUG_PORT=$((9340 + QA_SLOT))
   sleep 0.5
