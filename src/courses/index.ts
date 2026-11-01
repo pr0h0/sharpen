@@ -13,6 +13,14 @@ import { mathThinking } from './math-thinking';
 import { probability } from './probability';
 import { science } from './science';
 import { statistics } from './statistics';
+import { finance } from './finance';
+import { economics } from './economics';
+import { systems } from './systems';
+import { networks } from './networks';
+import { calculus } from './calculus';
+import { universe } from './universe';
+import { crypto } from './crypto';
+import { puzzles } from './puzzles';
 import { strategy } from './strategy';
 
 export interface Category {
@@ -24,12 +32,14 @@ export interface Category {
 
 // Brilliant-like areas: math, data, computer science, science, plus reasoning and decisions.
 export const CATEGORIES: Category[] = [
-  { id: 'math', title: 'Math', blurb: 'Patterns, proof, algebra and space.', courses: [mathThinking, algebra, geometry] },
+  { id: 'math', title: 'Math', blurb: 'Patterns, proof, algebra, space and change.', courses: [mathThinking, algebra, geometry, calculus] },
   { id: 'data', title: 'Probability & Data', blurb: 'Chance, evidence and what data does and doesn’t say.', courses: [probability, bayes, statistics] },
-  { id: 'cs', title: 'Computer Science', blurb: 'Programs, algorithms and how machines learn.', courses: [code, algorithms, ai] },
-  { id: 'science', title: 'Science', blurb: 'Estimate, model and test the physical world.', courses: [science] },
-  { id: 'logic', title: 'Logic & Reasoning', blurb: 'Deduction and the mind’s built-in traps.', courses: [logic, biases] },
+  { id: 'cs', title: 'Computer Science', blurb: 'Programs, algorithms and how machines learn.', courses: [code, algorithms, ai, crypto] },
+  { id: 'science', title: 'Science', blurb: 'Estimate, model and test the physical world.', courses: [science, universe] },
+  { id: 'logic', title: 'Logic & Reasoning', blurb: 'Deduction and the mind’s built-in traps.', courses: [logic, biases, puzzles] },
   { id: 'decide', title: 'Decisions & Strategy', blurb: 'Choosing well under uncertainty and against others.', courses: [decisions, strategy] },
+  { id: 'money', title: 'Money & Economics', blurb: 'Compounding, incentives, prices and trade-offs.', courses: [finance, economics] },
+  { id: 'systems', title: 'Systems & Networks', blurb: 'Feedback loops, delays, and how things spread.', courses: [systems, networks] },
 ];
 
 /** Courses with content (placeholders without lessons are left out). */
