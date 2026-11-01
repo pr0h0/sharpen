@@ -1,10 +1,19 @@
 // Content checks: run with `bun tools/validate.ts`. Fails (exit 1) on any malformed lesson step
 // or practice problem. Generators are run with many seeds, since a bad number is worse than none.
-import { COURSES } from '../src/courses';
-import type { AskStep, Step } from '../src/types';
+import { COURSES as ALL } from '../src/courses';
+import type { AskStep, Course, Step } from '../src/types';
 import { seeded } from '../src/ui';
 
-declare const process: { exit(code: number): never };
+declare const process: { exit(code: number): never; argv: string[] };
+
+// `bun tools/validate.ts src/courses/logic.ts` checks just that file's exported course(s).
+let COURSES: Course[] = ALL;
+const only = process.argv[2];
+if (only) {
+  const mod = await import(new URL('../' + only, import.meta.url).href);
+  COURSES = Object.values(mod).filter((v): v is Course => !!v && typeof v === 'object' && 'lessons' in (v as object));
+  if (!COURSES.length) { console.error(`no Course exported from ${only}`); process.exit(1); }
+}
 
 const errors: string[] = [];
 const err = (where: string, msg: string) => errors.push(`${where}: ${msg}`);

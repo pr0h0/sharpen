@@ -7,7 +7,8 @@
   let n = 0, asks = 0;
   for (let guard = 0; guard < 80; guard++) {
     await sleep(120);
-    if (!document.querySelector('.player')) break; // summary screen reached
+    if (!document.querySelector(".player")) break; // summary screen reached
+    if (globalThis.__stopAt && n + 1 >= globalThis.__stopAt) break; // stop on this step for a screenshot
     const st = globalThis.__sharpenStep;
     if (!st) { errors.push('no step'); break; }
     n++;

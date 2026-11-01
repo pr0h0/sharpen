@@ -273,6 +273,7 @@ export function play(root: HTMLElement, s: Session) {
   function taskInput(st: TaskStep, ready: (ok: boolean) => void): [() => [boolean, string | undefined], () => void] {
     let solvedNow = false;
     body.appendChild(h('div', { class: 'widget' }, st.widget({ solved: (ok) => { solvedNow = ok; ready(true); } })));
+    ready(true); // always checkable, so a stuck learner gets feedback and can ask for the answer
     return [() => [solvedNow, solvedNow ? undefined : 'Not yet. Keep adjusting.'], () => {}];
   }
 
