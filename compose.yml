@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4956:4956"   # loopback only; public via Cloudflare tunnel
+    volumes:
+      - data:/data
+volumes:
+  data:

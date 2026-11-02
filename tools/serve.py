@@ -259,6 +259,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def api_POST_login(self):
         ip = self.client_address[0]
+        if os.environ.get("SHARPEN_TRUST_CF"):  # behind Cloudflare tunnel: every request comes from the proxy
+            ip = self.headers.get("CF-Connecting-IP") or ip
         if throttled(ip):
             raise ApiError(429, "Too many wrong attempts. Try again in a few minutes.")
         username, password = self._credentials()
