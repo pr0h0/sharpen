@@ -211,7 +211,9 @@ export function play(root: HTMLElement, s: Session) {
     setTimeout(() => inp.focus(), 30);
     return [
       () => {
-        const v = parseNumber(inp.value);
+        let v = parseNumber(inp.value);
+        // On a question answered in percent, "25%" means 25, not 0.25.
+        if (st.unit?.trim() === '%' && inp.value.trim().endsWith('%')) v *= 100;
         const tol = st.tol ?? Math.max(1e-9, Math.abs(st.answer) * 0.005);
         let ok = Math.abs(v - st.answer) <= tol;
         // Someone typing 25 for a probability of 25% means 0.25.

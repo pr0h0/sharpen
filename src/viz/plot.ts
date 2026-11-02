@@ -30,7 +30,8 @@ export function niceStep(span: number, n = 6): number {
 
 const fmtTick = (v: number) => {
   const r = Math.round(v * 1e6) / 1e6;
-  return Math.abs(r) >= 10000 ? r.toLocaleString('en-US') : String(r);
+  const t = Math.abs(r) >= 10000 ? r.toLocaleString('en-US') : String(r);
+  return t.replace(/^-/, '−'); // a real minus sign
 };
 
 export function plot(spec: PlotSpec): PlotView {
