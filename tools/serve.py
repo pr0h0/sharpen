@@ -23,6 +23,7 @@ import functools
 import hashlib
 import hmac
 import http.server
+import ipaddress
 import json
 import os
 import pathlib
@@ -38,7 +39,7 @@ APP_ROOT = pathlib.Path(__file__).resolve().parent.parent
 ROOT = APP_ROOT / "dist"
 DB_PATH = pathlib.Path(os.environ.get("SHARPEN_DB", APP_ROOT / "data" / "sharpen.db"))
 
-MAX_BODY = 2 * 1024 * 1024          # progress documents are a few KB; this is a safety cap
+MAX_BODY = 256 * 1024               # a maxed-out account (every lesson, every skill in review) is ~41 KB
 SESSION_DAYS = 365
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_.-]{3,32}$")
 MIN_PASSWORD = 8
@@ -103,22 +104,32 @@ def hash_password(password: str, salt: bytes) -> bytes:
     return hashlib.scrypt(password.encode(), salt=salt, n=2**14, r=8, p=1, maxmem=64 * 1024 * 1024, dklen=32)
 
 
-# Wrong-password throttle per client address: at most 10 failures per 10 minutes.
+# Throttles per client: at most 10 wrong passwords per 10 minutes, 5 sign-ups per hour.
+LOGIN_LIMIT, REGISTER_LIMIT = (10, 600), (5, 3600)
 _fails: dict[str, list[float]] = {}
 _fails_lock = threading.Lock()
 
 
-def throttled(ip: str) -> bool:
+def ip_key(ip: str) -> str:
+    """IPv6 clients are grouped by /64 (one customer's block), so rotating addresses doesn't help."""
+    try:
+        a = ipaddress.ip_address(ip)
+    except ValueError:
+        return ip
+    return str(ipaddress.ip_network(f"{a}/64", strict=False)) if a.version == 6 else str(a)
+
+
+def throttled(key: str, limit: tuple[int, int]) -> bool:
     now = time.time()
     with _fails_lock:
-        recent = [t for t in _fails.get(ip, []) if now - t < 600]
-        _fails[ip] = recent
-        return len(recent) >= 10
+        recent = [t for t in _fails.get(key, []) if now - t < limit[1]]
+        _fails[key] = recent
+        return len(recent) >= limit[0]
 
 
-def note_fail(ip: str):
+def note_fail(key: str):
     with _fails_lock:
-        _fails.setdefault(ip, []).append(time.time())
+        _fails.setdefault(key, []).append(time.time())
 
 
 # ---------------------------------------------------------------- HTTP
@@ -241,7 +252,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             raise ApiError(400, "Username and password are required.")
         return username.strip(), password
 
+    def _ip(self) -> str:
+        ip = self.client_address[0]
+        if os.environ.get("SHARPEN_TRUST_CF"):  # behind Cloudflare tunnel: every request comes from the proxy
+            ip = self.headers.get("CF-Connecting-IP") or ip
+        return ip_key(ip)
+
     def api_POST_register(self):
+        reg = "reg:" + self._ip()
+        if throttled(reg, REGISTER_LIMIT):
+            raise ApiError(429, "Too many new accounts from your network. Try again later.")
         username, password = self._credentials()
         if not USERNAME_RE.match(username):
             raise ApiError(400, "Usernames are 3 to 32 letters, digits, dots, dashes or underscores.")
@@ -255,13 +275,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                (username, hash_password(password, salt), salt, int(time.time())))
         except sqlite3.IntegrityError:
             raise ApiError(409, "That username is taken.")
+        note_fail(reg)  # counts accounts created, not failures
         self._json(200, {"user": {"username": username}}, self._new_session(cur.lastrowid))
 
     def api_POST_login(self):
-        ip = self.client_address[0]
-        if os.environ.get("SHARPEN_TRUST_CF"):  # behind Cloudflare tunnel: every request comes from the proxy
-            ip = self.headers.get("CF-Connecting-IP") or ip
-        if throttled(ip):
+        ip = self._ip()
+        if throttled(ip, LOGIN_LIMIT):
             raise ApiError(429, "Too many wrong attempts. Try again in a few minutes.")
         username, password = self._credentials()
         row = db().execute("SELECT id, username, pw_hash, salt FROM users WHERE username = ?", (username,)).fetchone()

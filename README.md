@@ -42,6 +42,16 @@ bash tools/build.sh    # builds dist/ (served on http://localhost:4956 by the sh
 python3 tools/serve.py # site + accounts API on :4956 (static only: serve dist/ any other way)
 ```
 
+Production is Cloudflare Pages (https://sharpen.pr0h0.me): `dist/` plus the same API as Pages
+Functions (`functions/api/[[path]].ts`) on D1 (`schema.sql`, PBKDF2 instead of scrypt). Config is
+`wrangler.toml`; needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in the environment.
+
+```sh
+bun run deploy                                    # build + wrangler pages deploy
+npx wrangler pages dev dist --port 8799           # local Pages + local D1 (first: npx wrangler d1 execute sharpen --local --file schema.sql)
+tools/api_smoke.sh [base-url]                     # API smoke test (default the local pages dev)
+```
+
 Progress lives in the browser (localStorage): lessons done, streak, daily goal, XP and the review
 queue (Leitner boxes: 0, 1, 3, 7, 16, 35 days). Answer options are shuffled every time a question is
 shown (numeric option sets are sorted by value), so position never gives the answer away.

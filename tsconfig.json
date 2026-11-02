@@ -10,5 +10,5 @@
     "noUnusedLocals": true,
     "noUnusedParameters": false
   },
-  "include": ["src", "tools/*.ts"]
+  "include": ["src", "tools/*.ts", "functions"]
 }

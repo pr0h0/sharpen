@@ -1,0 +1,9 @@
+# Cloudflare Pages: static dist/ + functions/api on D1. Deploy: bun run deploy
+name = "sharpen"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sharpen"
+database_id = "f4d000d3-04ca-4961-95d3-9f3e49ff6d03"

@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "bash tools/build.sh",
-    "check": "tsc --noEmit && bun tools/validate.ts"
+    "check": "tsc --noEmit && bun tools/validate.ts",
+    "deploy": "bash tools/build.sh && npx -y wrangler@4.156.2 pages deploy dist --project-name sharpen --branch master"
   },
   "devDependencies": {
     "typescript": "5.6.3"
