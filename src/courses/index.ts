@@ -26,6 +26,10 @@ import { chemistry } from './chemistry';
 import { negotiation } from './negotiation';
 import { business } from './business';
 import { queues } from './queues';
+import { numberTheory } from './number-theory';
+import { linearAlgebra } from './linear-algebra';
+import { internet } from './internet';
+import { databases } from './databases';
 
 export interface Category {
   id: string;
@@ -36,9 +40,9 @@ export interface Category {
 
 // Brilliant-like areas: math, data, computer science, science, plus reasoning and decisions.
 export const CATEGORIES: Category[] = [
-  { id: 'math', title: 'Math', blurb: 'Patterns, proof, algebra, space and change.', courses: [mathThinking, algebra, geometry, calculus] },
+  { id: 'math', title: 'Math', blurb: 'Patterns, proof, algebra, space and change.', courses: [mathThinking, algebra, geometry, calculus, numberTheory, linearAlgebra] },
   { id: 'data', title: 'Probability & Data', blurb: 'Chance, evidence and what data does and doesn’t say.', courses: [probability, bayes, statistics] },
-  { id: 'cs', title: 'Computer Science', blurb: 'Programs, algorithms and how machines learn.', courses: [code, algorithms, ai, crypto] },
+  { id: 'cs', title: 'Computer Science', blurb: 'Programs, algorithms and how machines learn.', courses: [code, algorithms, ai, crypto, internet, databases] },
   { id: 'science', title: 'Science', blurb: 'Estimate, model and test the physical world.', courses: [science, universe, chemistry] },
   { id: 'logic', title: 'Logic & Reasoning', blurb: 'Deduction and the mind’s built-in traps.', courses: [logic, biases, puzzles] },
   { id: 'decide', title: 'Decisions & Strategy', blurb: 'Choosing well under uncertainty and against others.', courses: [decisions, strategy, negotiation] },

@@ -18,8 +18,12 @@ Grouped like Brilliant's catalog: Math, Probability & Data, Computer Science, Sc
 | Thinking in Code | sequencing, variables, conditionals, loops, lists, functions, debugging, programming patterns |
 | Algorithms | what an algorithm is, searching, sorting, growth rates, graphs, shortest paths, greedy, recursion and DP |
 | How AI Works | learning from examples, decision boundaries, measuring error, gradient descent, neurons, overfitting, language models, using AI wisely |
+| How the Internet Works | packets, addresses and routing, latency vs bandwidth, TCP, congestion, DNS, HTTP, CDNs and HTTPS (who can see what) |
+| Databases | tables and keys, SQL queries, grouping, joins, table design, indexes, transactions, NULL and other traps |
 | Scientific Thinking | Fermi estimates, units, motion graphs, forces, energy, waves, experiments and controls, models |
 | Calculus Intuition | rates of change, the derivative, rules by picture, reading derivatives, optimisation, area, the fundamental theorem, exponentials |
+| Number Theory | divisibility tests, prime factorisation, GCD/LCM and Euclid, clock arithmetic, powers and cycles (Fermat), whole-number equations, number bases, check digits (Luhn, ISBN) |
+| Linear Algebra | vectors as arrows, length and the dot product, span, matrices as transformations, composition, the determinant as area, solving Ax = b and inverses, eigenvectors |
 | The Universe by Numbers | scale, light-travel time, orbits and gravity, seasons and the Moon, parallax, starlight, the expanding universe, are we alone |
 | Chemistry by Numbers | atoms and the periodic table, the mole, balancing equations, limiting reagents, concentration and dilution, pH and logs, gases (PV = nRT), reaction energy and rates |
 | Information & Cryptography | bits, information and surprise, compression, error correction, classical ciphers, brute force, hashing, public-key ideas |
