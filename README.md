@@ -21,18 +21,22 @@ Grouped like Brilliant's catalog: Math, Probability & Data, Computer Science, Sc
 | Scientific Thinking | Fermi estimates, units, motion graphs, forces, energy, waves, experiments and controls, models |
 | Calculus Intuition | rates of change, the derivative, rules by picture, reading derivatives, optimisation, area, the fundamental theorem, exponentials |
 | The Universe by Numbers | scale, light-travel time, orbits and gravity, seasons and the Moon, parallax, starlight, the expanding universe, are we alone |
+| Chemistry by Numbers | atoms and the periodic table, the mole, balancing equations, limiting reagents, concentration and dilution, pH and logs, gases (PV = nRT), reaction energy and rates |
 | Information & Cryptography | bits, information and surprise, compression, error correction, classical ciphers, brute force, hashing, public-key ideas |
 | Puzzle Solving | understanding the problem, small cases, weighing puzzles, state spaces, constraint grids, invariants, working backwards, getting unstuck |
 | Personal Finance | compound growth, inflation, debt, saving rate, diversification, fees, big decisions, money psychology |
 | Economic Thinking | incentives, the margin, supply and demand, prices as signals, comparative advantage, elasticity, externalities, markets vs reality |
+| Business by the Numbers | revenue, cost and profit, margins vs markups, break-even and operating leverage, unit economics (CAC, LTV, payback), pricing and discounts, cash flow vs profit, growth and churn, valuation |
 | Systems Thinking | stocks and flows, reinforcing and balancing loops, delays, limits to growth, leverage points, simulation, second-order effects |
 | Networks & Contagion | degree and centrality, the friendship paradox, hubs, small worlds, R and spreading, herd thresholds, cascades, robustness |
+| Queues & Bottlenecks | utilization, Little's law, why waits explode near full load, variability (Kingman), bottlenecks, batch size and WIP, pooling, priorities and fairness |
 | Probability | chances, counting, the long run, and/or/at least one, conditioning, expected value, Monty Hall, reading risk |
 | Bayesian Thinking | base rates, natural frequencies, false positives, updating, likelihood ratios, stacking evidence, P(A given B) vs P(B given A), everyday Bayes |
 | Logic | negation, if-then, checking rules (Wason), necessary and sufficient, syllogisms, knights and knaves, grid deduction, valid vs sound |
 | Decisions Under Uncertainty | decision trees, risk and ruin, bet sizing (Kelly), value of information, opportunity and sunk cost, option value, process vs outcome, calibration |
 | Thinking Errors | anchoring, availability, confirmation, survivorship, regression to the mean, framing, conjunction, overconfidence |
 | Strategy & Game Theory | working backwards, backward induction, dominance, the prisoner's dilemma, Nash equilibrium, mixed strategies, repeated games, auctions |
+| Negotiation | BATNA and reservation price, the bargaining zone, anchors and first offers, concessions, trading across issues, fairness and the ultimatum game, deadlines and patience, information and commitment |
 
 ## Run it
 
