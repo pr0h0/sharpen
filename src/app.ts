@@ -129,8 +129,9 @@ function homeScreen() {
       h('div', { class: 'course-icon' }, c.icon),
       h('h3', null, c.title),
       h('p', { class: 'muted' }, c.blurb),
-      h('div', { class: 'progress' }, h('div', { class: 'progress-fill', style: `width:${p * 100}%` })),
-      h('div', { class: 'small muted' }, `${c.lessons.filter((l) => isDone(c, l)).length} of ${c.lessons.length} lessons`));
+      h('div', { class: 'course-foot' },
+        h('div', { class: 'progress' }, h('div', { class: 'progress-fill', style: `width:${p * 100}%` })),
+        h('span', { class: 'small muted' }, `${c.lessons.filter((l) => isDone(c, l)).length}/${c.lessons.length}`)));
   };
   const cats = CATEGORIES.map((k) => ({ ...k, courses: k.courses.filter((c) => c.lessons.length) })).filter((k) => k.courses.length);
   const sections = h('div', null);
