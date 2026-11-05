@@ -15,7 +15,7 @@ APP = os.environ.get("QA_URL", "http://127.0.0.1:4956/")
 out = sys.argv[1]
 VW, VH, DPR = int(os.environ.get("QA_W", 1440)), int(os.environ.get("QA_H", 810)), float(os.environ.get("QA_DPR", 1))
 steps = json.loads(sys.argv[2]) if len(sys.argv) > 2 else []
-chrome = subprocess.Popen(["chromium", "--headless=new", "--no-sandbox", "--use-angle=swiftshader", "--enable-unsafe-swiftshader",
+chrome = subprocess.Popen([os.environ.get("CHROME", "chromium"), "--headless=new", "--no-sandbox", "--use-angle=swiftshader", "--enable-unsafe-swiftshader",
     f"--window-size={VW},{VH}", f"--user-data-dir={out}/prof", f"--remote-debugging-port={DBG}", f"--remote-allow-origins=http://127.0.0.1:{DBG}", "about:blank"],
     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 try:

@@ -68,3 +68,12 @@ test('pre-sync progress migrates into this device\'s counter', () => {
   expect(Object.values(s.dev)).toEqual([dev(300, 40, 30, 9, 4)]);
   expect(s.xp).toBe(300);
 });
+
+test('game scores: max per day, best is max, old days pruned', () => {
+  const a = S({ games: { 'x@100': 40, 'x@30': 9 }, gameBest: { x: 40 } });
+  const b = S({ games: { 'x@100': 70, 'y@101': 5 }, gameBest: { x: 70, y: 5 } });
+  const m = join(a, b);
+  same(m.games, { 'x@100': 70, 'y@101': 5 });
+  same(m.gameBest, { x: 70, y: 5 });
+  same(join(b, a).games, m.games);
+});

@@ -53,6 +53,10 @@ export interface State {
   settingsT: number;
   /** Bumped by "erase progress": a copy with a newer epoch replaces older ones entirely. */
   epoch: number;
+  /** Daily game scores, "gameId@day" -> 0..100. Only the last GAME_DAYS days are kept. */
+  games: Record<string, number>;
+  /** Best daily score per game, ever. */
+  gameBest: Record<string, number>;
 }
 
 const KEY = 'sharpen.v1';
@@ -60,7 +64,7 @@ const DEVICE_KEY = 'sharpen.device';
 
 export const fresh = (): State => ({
   xp: 0, done: {}, resume: {}, streak: 0, lastDay: 0, today: { day: 0, solved: 0 }, dailyGoal: 10,
-  review: [], answered: 0, correctFirst: 0, theme: 'auto', dev: {}, settingsT: 0, epoch: 0,
+  review: [], answered: 0, correctFirst: 0, theme: 'auto', dev: {}, settingsT: 0, epoch: 0, games: {}, gameBest: {},
 });
 
 export const today = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
@@ -241,6 +245,10 @@ export function join(a0: State, b0: State): State {
   }
   out.review = [...rev.values()].sort((x, y) => (x.key < y.key ? -1 : x.key > y.key ? 1 : 0));
 
+  for (const src of [a.games, b.games]) for (const [k, v] of Object.entries(src)) out.games[k] = Math.max(out.games[k] ?? 0, v);
+  pruneGames(out.games);
+  for (const src of [a.gameBest, b.gameBest]) for (const [k, v] of Object.entries(src)) out.gameBest[k] = Math.max(out.gameBest[k] ?? 0, v);
+
   const st = a.settingsT >= b.settingsT ? a : b;
   out.dailyGoal = st.dailyGoal;
   out.theme = st.theme;
@@ -273,4 +281,31 @@ export function schedule(key: string, missed: boolean) {
 export function dueReviews(): ReviewItem[] {
   const d = today();
   return state.review.filter((r) => r.due <= d).sort((a, b) => a.box - b.box || a.due - b.due);
+}
+
+// ---------------------------------------------------------------- daily games
+
+const GAME_DAYS = 60;
+
+/** Drop scores older than GAME_DAYS before the newest one (keeps the synced state small). */
+function pruneGames(g: Record<string, number>) {
+  const days = Object.keys(g).map((k) => Number(k.split('@')[1]));
+  const cut = Math.max(0, ...days) - GAME_DAYS;
+  for (const k of Object.keys(g)) if (Number(k.split('@')[1]) <= cut) delete g[k];
+}
+
+export const gameScore = (id: string, day = today()): number | undefined => state.games[`${id}@${day}`];
+
+/** Record today's round of a game (first finish of the day counts); returns the XP earned. */
+export function recordGame(id: string, score: number): number {
+  const k = `${id}@${today()}`;
+  if (k in state.games) return 0;
+  state.games[k] = score;
+  pruneGames(state.games);
+  state.gameBest[id] = Math.max(state.gameBest[id] ?? 0, score);
+  const xp = 5 + Math.round(score / 10);
+  addXp(xp);
+  touchStreak();
+  save();
+  return xp;
 }

@@ -1,7 +1,9 @@
-// Screens and routing (#/, #/course/:id, #/lesson/:course/:lesson, #/practice, #/settings).
+// Screens and routing (#/, #/course/:id, #/lesson/:course/:lesson, #/practice, #/game/:id, #/settings).
 import { ALL_COURSES, CATEGORIES, COURSES } from './courses';
 import { play, type Item, type Result } from './player';
-import { addXp, dueReviews, liveStreak, save, schedule, setSaveHook, setSetting, solvedToday, state, countSolved, touchStreak, today } from './store';
+import { GAMES } from './games';
+import { dailySeed } from './games/game';
+import { addXp, dueReviews, gameScore, recordGame, liveStreak, save, schedule, setSaveHook, setSetting, solvedToday, state, countSolved, touchStreak, today } from './store';
 import { currentAccount, eraseEverywhere, lastSyncTime, onRemoteState, onSyncChange, queueSync, register, signIn, signOut, startSync, syncNow, syncStatus } from './sync';
 import type { Course, Lesson } from './types';
 import { h, md, pick, seeded, shuffle } from './ui';
@@ -22,12 +24,16 @@ export function start() {
   startSync();
 }
 
+let unmount: (() => void) | void;
+
 function route() {
+  if (unmount) { unmount(); unmount = undefined; }
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   window.scrollTo(0, 0);
   if (parts[0] === 'course' && parts[1]) return courseScreen(parts[1]);
   if (parts[0] === 'lesson' && parts[1] && parts[2]) return lessonScreen(parts[1], parts[2]);
   if (parts[0] === 'practice') return practiceScreen();
+  if (parts[0] === 'game' && parts[1]) return gameScreen(parts[1]);
   if (parts[0] === 'settings') return settingsScreen();
   if (parts[0] === 'account') return accountScreen();
   homeScreen();
@@ -148,7 +154,18 @@ function homeScreen() {
     h('button', { class: 'cat-tab', role: 'tab', 'data-cat': k.id, onclick: () => show(k.id) }, k.title)));
   show(cats.some((k) => k.id === homeCat) ? homeCat : 'all');
 
-  page(today, h('h2', { class: 'section-title' }, 'Courses'), tabs, sections,
+  const played = GAMES.filter((g) => gameScore(g.id) !== undefined).length;
+  const games = h('section', null,
+    h('div', { class: 'cat-head' }, h('h2', null, 'Daily games'), h('span', { class: 'muted small' }, `${played} of ${GAMES.length} played today · a new round every day`)),
+    h('div', { class: 'games' }, GAMES.map((g) => {
+      const sc = gameScore(g.id);
+      return h('a', { class: `card game-tile${sc !== undefined ? ' played' : ''}`, href: `#/game/${g.id}`, style: `--accent:${g.color}`, title: g.blurb },
+        h('span', { class: 'game-icon' }, g.icon),
+        h('span', { class: 'game-name' }, g.title),
+        h('span', { class: 'game-status' }, sc !== undefined ? `✓ ${sc}` : 'Play'));
+    })));
+
+  page(today, games, h('h2', { class: 'section-title' }, 'Courses'), tabs, sections,
     h('p', { class: 'footnote muted' }, 'Learn by doing: every lesson is a run of small problems. Answer first, then see why.'));
 }
 
@@ -263,6 +280,66 @@ function practiceScreen() {
     onDone: (r) => summary(r, null, 0, () => ({ label: 'More practice', go: () => practiceScreen() }), '#/'),
     onClose: () => go('#/'),
   });
+}
+
+// ---------------------------------------------------------------- daily games
+
+const gameCss = new Set<string>();
+
+function gameScreen(id: string) {
+  const g = GAMES.find((x) => x.id === id);
+  if (!g) return go('#/');
+  if (g.css && !gameCss.has(g.id)) { gameCss.add(g.id); document.head.append(h('style', null, g.css)); }
+  const stage = h('div', { class: `game-stage g-${g.id}`, style: `--accent:${g.color}` });
+  const after = h('div');
+  const course = g.course ? COURSES.find((c) => c.id === g.course) : undefined;
+  const todayScore = gameScore(g.id);
+
+  const run = (daily: boolean) => {
+    if (unmount) unmount();
+    stage.replaceChildren();
+    after.replaceChildren();
+    const seed = daily ? dailySeed(g.id, today()) : (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0;
+    let over = false;
+    unmount = g.mount(stage, {
+      rng: seeded(seed), seed, daily,
+      finish: (raw, note) => {
+        if (over) return;
+        over = true;
+        const score = Math.max(0, Math.min(100, Math.round(raw)));
+        const xp = daily ? recordGame(g.id, score) : 0;
+        after.replaceChildren(result(score, note, daily, xp));
+        after.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      },
+    });
+  };
+
+  const result = (score: number, note: string | undefined, daily: boolean, xp: number) =>
+    h('div', { class: 'card game-result', style: `--accent:${g.color}` },
+      h('div', { class: 'game-score' }, h('span', { class: 'stat-v' }, String(score)), h('span', { class: 'muted' }, ' / 100')),
+      note ? md(note) : null,
+      h('p', { class: 'muted small' }, daily
+        ? `Today’s round is recorded${xp ? ` (+${xp} XP)` : ''}. Best ever: ${state.gameBest[g.id] ?? score}. A new round comes tomorrow.`
+        : 'Practice round: not recorded.'),
+      h('div', { class: 'account-btns' },
+        h('button', { class: 'ghost', onclick: () => run(false) }, 'Practice round'),
+        course ? h('a', { class: 'btn ghost', href: `#/course/${course.id}` }, `Course: ${course.title}`) : null,
+        h('a', { class: 'btn primary', href: '#/' }, 'Home')));
+
+  page(
+    h('a', { class: 'back', href: '#/' }, '‹ Home'),
+    h('div', { class: 'game-head', style: `--accent:${g.color}` },
+      h('span', { class: 'game-icon big' }, g.icon),
+      h('div', null, h('h1', null, g.title), h('p', { class: 'muted' }, g.blurb))),
+    h('details', { class: 'game-how', open: todayScore === undefined }, h('summary', null, 'How to play'), md(g.how)),
+    todayScore === undefined ? stage : h('div', null,
+      h('div', { class: 'card game-result', style: `--accent:${g.color}` },
+        h('div', { class: 'game-score' }, h('span', { class: 'stat-v' }, String(todayScore)), h('span', { class: 'muted' }, ' / 100')),
+        h('p', { class: 'muted' }, `You’ve played today’s round. Best ever: ${state.gameBest[g.id] ?? todayScore}. A new one comes tomorrow.`),
+        h('div', { class: 'account-btns' }, h('button', { class: 'primary', onclick: (e: Event) => { (e.currentTarget as HTMLElement).closest('.game-result')!.remove(); run(false); } }, 'Practice round'))),
+      stage),
+    after);
+  if (todayScore === undefined) run(true);
 }
 
 // ---------------------------------------------------------------- settings

@@ -136,6 +136,22 @@ for (const c of COURSES) {
   }
 }
 
+// Daily games: build 500 days' rounds of each and let the game check itself.
+if (!only) {
+  const { GAMES } = await import('../src/games');
+  const { dailySeed } = await import('../src/games/game');
+  const ids = new Set<string>();
+  for (const g of GAMES) {
+    if (ids.has(g.id)) err(`game ${g.id}`, 'duplicate id');
+    ids.add(g.id);
+    for (let d = 20000; d < 20500; d++) {
+      let msg: string | null;
+      try { msg = g.check(dailySeed(g.id, d)); } catch (e) { msg = `threw ${e}`; }
+      if (msg) { err(`game ${g.id} day ${d}`, msg); break; }
+    }
+  }
+}
+
 if (errors.length) {
   console.error(`CONTENT ERRORS (${errors.length}):\n` + errors.slice(0, 60).map((e) => '  ' + e).join('\n'));
   process.exit(1);

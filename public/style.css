@@ -475,3 +475,33 @@ pre.trace-out { margin: 0; background: #11151f; color: #d7e0ee; padding: 8px 10p
   .path-item a { padding: 10px 12px; gap: 12px; }
   .path-dot { width: 30px; height: 30px; }
 }
+
+/* ---------------------------------------------------------------- daily games */
+.games { display: grid; gap: 10px; grid-template-columns: repeat(4, 1fr); }
+.game-tile { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 10px 14px; text-decoration: none; border-left: 4px solid var(--accent); transition: transform .12s; }
+.game-tile:hover { transform: translateY(-2px); }
+.game-tile .game-icon { grid-row: 1 / 3; font-size: 1.5rem; width: 1.2em; text-align: center; }
+.game-name { font-weight: 700; font-size: .95rem; line-height: 1.25; }
+.game-status { font-size: .82rem; font-weight: 600; color: var(--accent); }
+.game-tile.played { opacity: .75; }
+.game-tile.played .game-status { color: var(--good); }
+.game-head { display: flex; gap: 14px; align-items: center; margin-bottom: 12px; }
+.game-head h1 { margin: 0; }
+.game-head p { margin: 0; }
+.game-icon.big { font-size: 2.6rem; }
+.game-how { margin-bottom: 14px; color: var(--muted); }
+.game-how summary { cursor: pointer; font-weight: 600; }
+.game-how .md { margin-top: 6px; }
+.game-stage { margin-bottom: 14px; }
+.game-result { border-top: 4px solid var(--accent); display: grid; gap: 8px; margin-bottom: 14px; }
+.game-result .md p:last-child { margin-bottom: 0; }
+.game-score { display: flex; align-items: baseline; gap: 4px; }
+.game-score .stat-v { font-size: 2.2rem; }
+@media (max-width: 800px) { .games { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) {
+  .games { gap: 8px; }
+  .game-tile { padding: 8px 10px; column-gap: 8px; }
+  .game-tile:hover { transform: none; }
+  .game-head h1 { font-size: 1.35rem; }
+  .game-icon.big { font-size: 2rem; }
+}
